@@ -1,0 +1,8 @@
+{
+  "name": "Barbearia Cosanostra- Agenda \u0026 BioSite",
+  "description": "Tradição italiana encontra o estilo moderno em Ponta Porã/MS. Cortes masculinos premium, barba impecável, progressiva, pacotes e produtos exclusivos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
