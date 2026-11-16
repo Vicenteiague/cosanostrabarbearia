@@ -47,6 +47,16 @@ export interface StatItem {
   label: string;
 }
 
+export interface VideoProductCard {
+  id: number;
+  title: string;
+  subtitle: string;
+  price: number;
+  platform: 'youtube' | 'reels';
+  videoUrl: string;
+  thumbnail: string;
+}
+
 export const IMAGES = {
   logo: '/assets/cosanostra/logo.png',
   heroSlides: [
@@ -239,6 +249,62 @@ export const STORE_CONFIG = {
       img: IMAGES.prodOleo,
     },
   ] as Product[],
+  videoProducts: [
+    {
+      id: 1,
+      title: 'Óleo para Barba Premium',
+      subtitle: 'Hidratação e brilho natural para sua barba sem pesar',
+      price: 55.0,
+      platform: 'youtube',
+      videoUrl: 'https://www.youtube.com/shorts/5qap5aO4i9A',
+      thumbnail: IMAGES.prodOleo,
+    },
+    {
+      id: 2,
+      title: 'Gel de Cabelo Fixação Forte',
+      subtitle: 'Acabamento profissional duradouro para o dia todo',
+      price: 45.0,
+      platform: 'reels',
+      videoUrl: 'https://www.instagram.com/reel/C8_cosanostra1/',
+      thumbnail: IMAGES.prodGel,
+    },
+    {
+      id: 3,
+      title: 'Shampoo Premium Mentolado',
+      subtitle: 'Limpeza profunda e nutrição para barba e cabelo',
+      price: 40.0,
+      platform: 'youtube',
+      videoUrl: 'https://www.youtube.com/shorts/jfKfPfyJRdk',
+      thumbnail: IMAGES.prodShampoo,
+    },
+    {
+      id: 4,
+      title: 'Hidratante Facial Pós-Barba',
+      subtitle: 'Hidratação profunda e ação calmante imediata',
+      price: 65.0,
+      platform: 'reels',
+      videoUrl: 'https://www.instagram.com/reel/C8_cosanostra2/',
+      thumbnail: IMAGES.prodHidratante,
+    },
+    {
+      id: 5,
+      title: 'Barba Navalha + Pigmentação',
+      subtitle: 'Veja como fazemos o alinhamento perfeito na navalha',
+      price: 55.0,
+      platform: 'youtube',
+      videoUrl: 'https://www.youtube.com/shorts/rUxyKA_-grg',
+      thumbnail: IMAGES.barbaNavalha,
+    },
+    {
+      id: 6,
+      title: 'Combo Corte + Barba VIP',
+      subtitle: 'Transformação completa no padrão Cosa Nostra',
+      price: 65.0,
+      platform: 'reels',
+      videoUrl: 'https://www.instagram.com/reel/C8_cosanostra3/',
+      thumbnail: IMAGES.corte,
+    },
+  ] as VideoProductCard[],
   products: [
     {
       id: 1,

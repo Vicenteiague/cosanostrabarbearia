@@ -23,8 +23,18 @@ import {
   Moon,
   User,
   Award,
+  Play,
+  Volume2,
+  Share2,
+  Settings2,
 } from 'lucide-react';
-import { STORE_CONFIG, IMAGES, Product, CustomSize } from './data/storeData';
+import {
+  STORE_CONFIG,
+  IMAGES,
+  Product,
+  CustomSize,
+  VideoProductCard,
+} from './data/storeData';
 
 interface CartItem {
   cartItemId: string;
@@ -71,6 +81,41 @@ function PixDiamondIcon({ className = 'w-5 h-5' }: { className?: string }) {
       <path d="M15.5 8.5l-7 7" />
     </svg>
   );
+}
+
+function getVideoEmbedInfo(
+  rawUrl: string,
+  fallbackPlatform: 'youtube' | 'reels'
+): {
+  platform: 'youtube' | 'reels';
+  embedUrl: string | null;
+} {
+  const url = rawUrl.trim();
+  if (!url) return { platform: fallbackPlatform, embedUrl: null };
+
+  // Check Instagram Reel / Post
+  const instaMatch = url.match(
+    /instagram\.com\/(?:reel|reels|p)\/([A-Za-z0-9_-]+)/i
+  );
+  if (instaMatch && instaMatch[1]) {
+    return {
+      platform: 'reels',
+      embedUrl: `https://www.instagram.com/reel/${instaMatch[1]}/embed`,
+    };
+  }
+
+  // Check YouTube Shorts / Watch / youtu.be / Embed
+  const ytMatch = url.match(
+    /(?:youtube\.com\/shorts\/|youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([A-Za-z0-9_-]{6,})/i
+  );
+  if (ytMatch && ytMatch[1]) {
+    return {
+      platform: 'youtube',
+      embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&playsinline=1&rel=0&modestbranding=1`,
+    };
+  }
+
+  return { platform: fallbackPlatform, embedUrl: null };
 }
 
 function SafeImage({
@@ -171,6 +216,45 @@ export default function App() {
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [addedToast, setAddedToast] = useState<string | null>(null);
   const [termsModalOpen, setTermsModalOpen] = useState(false);
+
+  // Nossos Produtos - 6 Cards em Carrossel (YouTube Shorts & Instagram Reels)
+  const [videoCards, setVideoCards] = useState<VideoProductCard[]>(() => {
+    try {
+      const saved = localStorage.getItem('cosanostra_video_products_v1');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length === 6) {
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore storage errors
+    }
+    return STORE_CONFIG.videoProducts;
+  });
+  const [playingVideoId, setPlayingVideoId] = useState<number | null>(null);
+  const [videoConfigOpen, setVideoConfigOpen] = useState(false);
+
+  const handleUpdateVideoCard = (
+    id: number,
+    field: keyof VideoProductCard,
+    value: string | number
+  ) => {
+    setVideoCards((prev) => {
+      const updated = prev.map((c) =>
+        c.id === id ? { ...c, [field]: value } : c
+      );
+      try {
+        localStorage.setItem(
+          'cosanostra_video_products_v1',
+          JSON.stringify(updated)
+        );
+      } catch {
+        // ignore storage errors
+      }
+      return updated;
+    });
+  };
 
   // FAQ open states
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
@@ -859,6 +943,185 @@ export default function App() {
                 </div>
               </article>
             ))}
+          </div>
+        </section>
+
+        {/* 5.1. GUIA "NOSSOS PRODUTOS" — 6 CARDS EM CARROSSEL VERTICAL (YOUTUBE SHORTS & REELS INSTAGRAM COMO NO ANEXO) */}
+        <section className="py-4 px-4">
+          <div className="flex items-end justify-between">
+            <div>
+              <h2 className="font-display uppercase text-[24px] font-bold text-zinc-900 dark:text-white tracking-wider">
+                Nossos Produtos
+              </h2>
+              <div className="w-14 h-1.5 rounded-full bg-gradient-to-r from-[#dc2626] to-[#7f1d1d] mt-1.5 mb-2" />
+            </div>
+            <button
+              type="button"
+              onClick={() => setVideoConfigOpen(true)}
+              className="mb-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-200/80 dark:bg-white/10 hover:bg-[#dc2626] hover:text-white text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
+              title="Configurar links do YouTube e Reels Instagram"
+            >
+              <Settings2 className="w-3.5 h-3.5" />
+              <span>Links YouTube / Reels</span>
+            </button>
+          </div>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3.5">
+            Toque no play para assistir aos vídeos no YouTube Shorts ou Reels
+            Instagram.
+          </p>
+
+          {/* Carrossel com 6 Cards Verticais 9:16 (Idêntico ao anexo) */}
+          <div className="flex gap-3.5 overflow-x-auto no-scrollbar pb-2">
+            {videoCards.map((vcard) => {
+              const isPlaying = playingVideoId === vcard.id;
+              const { platform, embedUrl } = getVideoEmbedInfo(
+                vcard.videoUrl,
+                vcard.platform
+              );
+
+              return (
+                <article
+                  key={vcard.id}
+                  className="flex-shrink-0 w-[188px] h-[334px] rounded-[24px] overflow-hidden relative bg-[#111115] border border-[#dc2626]/40 shadow-[0_8px_25px_-8px_rgba(0,0,0,0.6)] group select-none"
+                >
+                  {isPlaying && embedUrl ? (
+                    <div className="w-full h-full relative bg-black">
+                      <iframe
+                        src={embedUrl}
+                        title={vcard.title}
+                        className="w-full h-full border-0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                      {/* Botão Fechar Vídeo para voltar à capa */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPlayingVideoId(null);
+                        }}
+                        aria-label="Fechar vídeo"
+                        className="absolute top-2.5 right-2.5 z-20 w-7 h-7 rounded-full bg-black/75 text-white border border-white/30 flex items-center justify-center hover:bg-[#dc2626] transition cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => {
+                        if (embedUrl) {
+                          setPlayingVideoId(vcard.id);
+                        } else {
+                          openExternalLink(vcard.videoUrl);
+                        }
+                      }}
+                      className="w-full h-full relative cursor-pointer"
+                    >
+                      {/* Imagem de Capa Vertical 9:16 */}
+                      <SafeImage
+                        src={vcard.thumbnail}
+                        alt={vcard.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                      />
+
+                      {/* Scrim Escuro Superior e Inferior como no Anexo */}
+                      <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/15 to-black/90" />
+
+                      {/* Topo do Card: Ícone Shorts ou Reels + Ícone de Som (igual ao anexo) */}
+                      <div className="absolute top-3 inset-x-3 flex items-center justify-between text-white z-10">
+                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/45 backdrop-blur-xs border border-white/15 text-[11px] font-bold tracking-tight">
+                          {platform === 'youtube' ? (
+                            <>
+                              <span className="w-3.5 h-3.5 rounded-full bg-[#ff0000] flex items-center justify-center text-[8px] text-white font-black">
+                                ▶
+                              </span>
+                              <span>Shorts</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-amber-400 via-pink-500 to-purple-600 flex items-center justify-center text-[8px] text-white font-black">
+                                ▶
+                              </span>
+                              <span>Reels</span>
+                            </>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 opacity-90">
+                          <Volume2 className="w-4 h-4 text-white drop-shadow" />
+                        </div>
+                      </div>
+
+                      {/* Botão Play Redondo Central com Borda Branca (Idêntico ao Anexo) */}
+                      <div className="absolute inset-0 flex items-center justify-center z-10">
+                        <div className="w-14 h-14 rounded-full bg-black/45 border-2 border-white/95 backdrop-blur-xs flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:bg-[#dc2626]/85 transition duration-200">
+                          <Play className="w-6 h-6 text-white fill-white ml-0.5" />
+                        </div>
+                      </div>
+
+                      {/* Ícone Lateral de Compartilhar (Estilo Shorts/Reels do Anexo) */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openExternalLink(vcard.videoUrl);
+                        }}
+                        aria-label="Abrir vídeo original"
+                        className="absolute right-2.5 bottom-20 z-20 flex flex-col items-center gap-0.5 text-white/90 hover:text-white"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-xs flex items-center justify-center border border-white/15">
+                          <Share2 className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-[9px] font-medium drop-shadow">
+                          Abrir
+                        </span>
+                      </button>
+
+                      {/* Rodapé Interno do Card com Logo, Nome do Produto e Botão */}
+                      <div className="absolute bottom-3 inset-x-3 z-10 space-y-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <SafeImage
+                            src={IMAGES.logo}
+                            alt="Cosa Nostra"
+                            className="w-5 h-5 rounded-full object-contain bg-black border border-[#dc2626]"
+                          />
+                          <span className="text-[10px] font-semibold text-white/90 truncate">
+                            @cosanostrabarbearia
+                          </span>
+                        </div>
+                        <h3 className="font-display uppercase text-xs font-bold text-white leading-tight line-clamp-1 drop-shadow">
+                          {vcard.title}
+                        </h3>
+                        <p className="text-[10px] text-zinc-200 line-clamp-2 leading-tight">
+                          {vcard.subtitle}
+                        </p>
+                        <div className="pt-1 flex items-center justify-between gap-1.5">
+                          <span className="text-xs font-extrabold text-[#f87171] tabular-nums">
+                            {formatBRL(vcard.price)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const msg = encodeURIComponent(
+                                `Olá! Vi o vídeo do produto *${vcard.title}* (${formatBRL(
+                                  vcard.price
+                                )}) e tenho interesse!`
+                              );
+                              openExternalLink(
+                                `https://wa.me/${STORE_CONFIG.whatsappNumber}?text=${msg}`
+                              );
+                            }}
+                            className="px-2.5 py-1 rounded-full bg-[#dc2626] hover:bg-[#b91c1c] text-white text-[10px] font-bold transition cursor-pointer"
+                          >
+                            Pedir
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
           </div>
         </section>
 
@@ -2057,6 +2320,104 @@ export default function App() {
               >
                 Entendi
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL CONFIGURAR OS 6 VÍDEOS (YOUTUBE SHORTS & REELS INSTAGRAM) */}
+        {videoConfigOpen && (
+          <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="bg-white dark:bg-[#17171c] border border-zinc-200 dark:border-zinc-800 w-full max-w-[460px] rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[90vh] flex flex-col shadow-2xl">
+              <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-3">
+                <div>
+                  <h3 className="font-display uppercase text-lg font-bold text-zinc-900 dark:text-white">
+                    Vídeos Nossos Produtos (6 Cards)
+                  </h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Cole o link do YouTube Shorts ou Reels do Instagram para
+                    cada card
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setVideoConfigOpen(false)}
+                  className="p-2 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-3 py-1 pr-1">
+                {videoCards.map((vc, idx) => (
+                  <div
+                    key={vc.id}
+                    className="p-3 rounded-2xl bg-zinc-50 dark:bg-[#101014] border border-zinc-200 dark:border-zinc-800 space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-[#dc2626] uppercase">
+                        Card #{idx + 1}
+                      </span>
+                      <select
+                        value={vc.platform}
+                        onChange={(e) =>
+                          handleUpdateVideoCard(
+                            vc.id,
+                            'platform',
+                            e.target.value as 'youtube' | 'reels'
+                          )
+                        }
+                        className="py-1 px-2.5 rounded-lg bg-white dark:bg-[#17171c] border border-zinc-200 dark:border-zinc-700 text-[11px] font-semibold text-zinc-900 dark:text-white"
+                      >
+                        <option value="youtube">YouTube / Shorts</option>
+                        <option value="reels">Instagram Reels</option>
+                      </select>
+                    </div>
+
+                    <input
+                      type="text"
+                      value={vc.title}
+                      onChange={(e) =>
+                        handleUpdateVideoCard(vc.id, 'title', e.target.value)
+                      }
+                      placeholder="Nome do Produto / Vídeo"
+                      className="w-full py-2 px-3 rounded-xl bg-white dark:bg-[#17171c] border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-900 dark:text-white"
+                    />
+
+                    <input
+                      type="url"
+                      value={vc.videoUrl}
+                      onChange={(e) =>
+                        handleUpdateVideoCard(vc.id, 'videoUrl', e.target.value)
+                      }
+                      placeholder="https://www.youtube.com/shorts/... ou https://www.instagram.com/reel/..."
+                      className="w-full py-2 px-3 rounded-xl bg-white dark:bg-[#17171c] border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-900 dark:text-white"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t border-zinc-200 dark:border-zinc-800 pt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVideoCards(STORE_CONFIG.videoProducts);
+                    localStorage.removeItem('cosanostra_video_products_v1');
+                  }}
+                  className="py-3 px-4 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-300 cursor-pointer"
+                >
+                  Restaurar padrão
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVideoConfigOpen(false);
+                    showToast('Vídeos atualizados com sucesso!');
+                  }}
+                  className="flex-1 py-3 rounded-2xl bg-[#dc2626] hover:bg-[#b91c1c] text-white font-display uppercase tracking-wider font-bold text-xs cursor-pointer"
+                >
+                  Salvar Links dos Vídeos
+                </button>
+              </div>
             </div>
           </div>
         )}
